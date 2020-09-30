@@ -1,0 +1,13 @@
+---
+title: "homework2"
+author: Zihan Yu
+output: github_document
+---
+
+```{r setup}
+library(tidyverse)
+library(readxl)
+library(haven)
+```
+
+##Problem 1
