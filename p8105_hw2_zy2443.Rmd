@@ -8,6 +8,190 @@ output: github_document
 library(tidyverse)
 library(readxl)
 library(haven)
+library(dplyr)
 ```
 
 ##Problem 1
+
+Read Mr. Trashwheel dataset.
+
+```{r}
+trashwheel_df = 
+  read_xlsx(
+    "~/Documents/P8105_Data Science 1/p8105_hw2_zy2443/Trash-Wheel-Collection-Totals-8-6-19.xlsx",
+    sheet = "Mr. Trash Wheel",
+    range = cell_cols("A:N")) %>%
+  janitor::clean_names() %>%
+  drop_na(dumpster) %>%
+  mutate(sports_balls = round(sports_balls),
+         sports_balls = as.integer(sports_balls)
+         )
+```
+
+Read Precipitation dataset for 2017 and 2018.
+
+```{r}
+precip_2018 =
+  read_xlsx(
+    "~/Documents/P8105_Data Science 1/p8105_hw2_zy2443/Trash-Wheel-Collection-Totals-8-6-19.xlsx",
+    sheet = "2018 Precipitation",
+    skip = 1) %>%
+  janitor::clean_names() %>%
+  drop_na(month) %>%
+  mutate(year = 2018) %>%
+  relocate(year)
+
+precip_2017 =
+  read_xlsx(
+    "~/Documents/P8105_Data Science 1/p8105_hw2_zy2443/Trash-Wheel-Collection-Totals-8-6-19.xlsx",
+    sheet = "2017 Precipitation",
+    skip = 1) %>%
+  janitor::clean_names() %>%
+  drop_na(month) %>%
+  mutate(year = 2017) %>%
+  relocate(year)
+```
+
+Combine precipitation datasets.
+
+```{r}
+month_df = 
+  tibble(
+    month = 1:12,
+    month_name = month.name
+  )
+precip_df = 
+  bind_rows(precip_2017, precip_2018) 
+
+left_join(precip_df, month_df, by = "month")
+```
+One dataset has information from Mr. Trashwheel. Key variables are year, month, trash collected and some kinds of trash. There are nrow(trashwheel_df) rows in final dataset. The other dataset has information about annual precipitation. Total precipitaion in 2018 is sum(pull(precip_2018, total)). 
+
+##Problem 2
+
+Read NYC Transit data.
+
+```{r}
+nyc_df = 
+  read.csv(
+    "~/Documents/P8105_Data Science 1/p8105_hw2_zy2443/NYC_Transit_Subway_Entrance_And_Exit_Data.csv"
+  ) %>%
+  select(c(2:18, 20, 23))
+
+as.logical(pull(nyc_df, Entry))
+
+dim(nyc_df)
+```
+This dataset contains information about entrance and exit for each subway station in NYC. Variables in this dataset are line, station name, station latitude/longitude, routes served, entry, vending, entrance type, and ADA. I used select() function to clean data. According to dim() function, the final dataset has 1868 rows and 19 columns. These data are not tidy because there are lots of NAs.
+
+```{r}
+nrow(distinct(nyc_df, Line, Station.Name))
+
+nyc_df2 =
+  distinct(nyc_df, Line, Station.Name, ADA) %>% 
+  filter(ADA == TRUE)
+nrow(nyc_df2)
+
+```
+There are 465 distinct stations and 84 stations are ADA compliant.
+
+```{r}
+nyc_df3 = 
+  distinct(nyc_df, Line, Station.Name, Vending) %>% 
+  filter(Vending == "NO")
+nyc_df4 =
+  distinct(nyc_df, Line, Station.Name, Vending, Entry) %>% 
+  filter(Vending == "NO", Entry == "YES") 
+nrow(nyc_df4)/ nrow(nyc_df3)
+```
+There are 43.43% station entrances / exits without vending allow entrance.
+
+Reformat data so that route number and route name are distinct variables
+```{r}
+
+```
+
+##Problem 3
+
+Read and clean pols-month dataset.
+
+```{r}
+pols_df = 
+  read_csv(
+    "~/Documents/P8105_Data Science 1/p8105_hw2_zy2443/fivethirtyeight_datasets/pols-month.csv") %>%
+  separate("mon", c("Year", "Month", "Day"), sep = "-") 
+
+cols<- c("Year", "Month", "Day")
+pols_df[cols] <- sapply(pols_df[cols],as.integer)
+
+month_df1 <- month_df
+names(month_df1)[1] <- "Month"
+
+pols_df <- merge(pols_df,month_df1,by = "Month") %>%
+           select(2,12,3:11) 
+names(pols_df)[2] <- "Month"
+
+pols_df$president <- select(pols_df, c(4:11)) %>% rowSums(na.rm = TRUE)
+
+pols_df2 <- pols_df[-c(3,4,8)]
+```
+
+
+Read and clean snp dataset.
+
+```{r}
+snp_df = 
+  read_csv(
+    "~/Documents/P8105_Data Science 1/p8105_hw2_zy2443/fivethirtyeight_datasets/snp.csv") %>%
+  separate("date", c("Month", "Day", "Year"), sep = "/") 
+
+cols2<- c("Month", "Day", "Year")
+snp_df[cols2] <- sapply(snp_df[cols2],as.integer)
+
+snp_df2 <- merge(snp_df,month_df1,by = "Month") %>%
+           select(3,5,4) 
+names(snp_df2)[2] <- "Month"
+
+snp_df2 <- arrange(snp_df2, Year, Month)
+
+```
+
+
+Read and clean unemployment dataset.
+
+```{r}
+unemploy_df =
+  read_csv(
+    "~/Documents/P8105_Data Science 1/p8105_hw2_zy2443/fivethirtyeight_datasets/unemployment.csv")
+
+unemploy_df2 =
+  pivot_longer(
+    unemploy_df, 
+    Jan : Dec,
+    names_to = "Month", 
+    values_to = "Unemployment")
+
+unemploy_df2$numeric_month <- match(unemploy_df2$Month, month.abb)
+
+unemploy_df3 <- unemploy_df2[, c(1,4,3)] 
+names(unemploy_df3)[2] <- "Month"
+                
+unemploy_df3 <- merge(unemploy_df3,month_df1,by = "Month") 
+
+unemploy_df4 <- unemploy_df3[, c(2,4,3)]
+names(unemploy_df4)[2] <- "Month"
+
+```
+
+
+Merge three datasets.
+
+```{r}
+final_df <- merge(pols_df2, snp_df2,by = c("Year", "Month"))
+final_df2 <- merge(final_df, unemploy_df4,by = c("Year", "Month"))
+
+dim(final_df2)
+range(final_df2$Year)
+```
+
+The final dataset contains three datasets. One is information related to the number of national politicians who are democratic or republican at any given time. One is information related to Standard & Poor’s stock market index at any given time while the final one is unemployment at any given time. There are 786 rows and 11 columns in final dataset.Range of year is from 1950 to 2015. Key variables are year, month, the number of republican governors, the number of republican senators, the number of republican representatives, the number of democratic governors, the number of democratic senators, the number of democratic representatives, president, the closing values of the S&P stock index and unemployment at given time.
