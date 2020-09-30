@@ -13,7 +13,7 @@ library(dplyr)
 
 ##Problem 1
 
-Read Mr. Trashwheel dataset.
+Read and clean Mr. Trashwheel dataset.
 
 ```{r}
 trashwheel_df = 
