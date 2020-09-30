@@ -1,5 +1,5 @@
 ---
-title: "homework2"
+title: "homework 2"
 author: Zihan Yu
 output: github_document
 ---
